@@ -91,6 +91,53 @@ ci_plot
 
 ## Q2
 ```{r}
+homicide_df = read.csv("homicide-data.csv")|>
+  janitor::clean_names()
+```
 
+```{r}
+homicide_clean = 
+  homicide_df |>
+  filter(
+    !is.na(victim_age),
+    victim_race %in% c("White", "Black"))|>
+  mutate(victim_age = as.numeric(victim_age))|>
+  mutate(
+    city_state = paste(city, state, sep = ", "),
+    solved_status = ifelse(disposition %in% c("Closed by arrest", "Closed without arrest"), 1, 0))|>
+  filter(
+    !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL", "Tulsa, AL"))|>
+  drop_na()
+```
+
+### filtering Baltimore
+```{r}
+md_df = 
+  homicide_clean |>
+  filter(city_state == "Baltimore, MD")
+```
+
+
+```{r}
+glm_fit =
+  glm(
+    solved_status ~ victim_age + victim_sex + victim_race, 
+    data = md_df, 
+    family = binomial
+)
+```
+
+
+```{r}
+glm_summary = broom::tidy(glm_fit, conf.int = TRUE, exponentiate = TRUE)
+```
+
+```{r}
+odds_sex =
+  glm_summary |> 
+  filter(term == "victim_sexMale") |> 
+  select(term, estimate, conf.low, conf.high)
+
+odds_sex
 ```
 
