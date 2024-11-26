@@ -141,3 +141,50 @@ odds_sex =
 odds_sex
 ```
 
+```{r}
+city_df = 
+  homicide_clean |>
+  group_by(city_state) |>
+  nest()|>
+  mutate(
+    glm_fit = map(data, ~ glm(solved_status ~ victim_age + victim_sex + victim_race,
+                              data = .x, family = binomial)),
+    
+    tidy_results = map(glm_fit, ~ broom::tidy(.x, conf.int = TRUE, exponentiate = TRUE)))|>
+  
+  unnest(tidy_results) |>
+ 
+  filter(term == "victim_sexMale") |>
+  
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+```{r}
+city_or_df =
+  city_df |>
+  arrange(desc(estimate)) |>
+  mutate(city_state = factor(city_state, levels = city_state))
+```
+
+### OR plot
+```{r}
+or_plot =
+  ggplot(city_or_df, aes(x = city_state, y = estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
+  labs(
+    x = "City",
+    y = "OR"
+  ) +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  #this plot does not show the order from greatest to lowest
+
+or_plot
+```
+
+
+## Q3
+```{r}
+
+```
+
