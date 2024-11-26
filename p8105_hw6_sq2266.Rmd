@@ -7,6 +7,7 @@ name: Sihan Qiu
 ```{r setup, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(modelr)
 set.seed(1)
 ```
 
@@ -185,6 +186,113 @@ or_plot
 
 ## Q3
 ```{r}
-
+bwt_df = read_csv("birthweight.csv")|>
+  janitor::clean_names()|>
+  mutate(
+    babysex = 
+      case_match(babysex, 
+                 1 ~ "male",
+                 2 ~ "female"),
+    babysex = fct_infreq(babysex),
+    
+    frace = case_match(frace,
+                1 ~ "white",
+                2 ~ "black",
+                3 ~ "asian",
+                4 ~ "puerto rican",
+                5 ~ "other"),
+    frace = fct_infreq(frace),
+    
+    mrace = case_match(mrace,
+                1 ~ "white",
+                2 ~ "black",
+                3 ~ "asian",
+                4 ~ "puerto rican",
+                5 ~ "other"),
+    mrace = fct_infreq(mrace),
+    
+    malform = case_match(malform,
+                 0 ~ "absent",
+                 1 ~ "present"),
+    malform = fct_infreq(malform)
+    )|>
+  drop_na()
 ```
 
+
+```{r}
+bwt_model =
+  lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + momage + mheight + ppbmi + smoken + wtgain + mrace, data = bwt_df)
+```
+
+```{r}
+bwt_model_df =
+  bwt_df |>
+  add_predictions(bwt_model, var = "fitted") |>
+  add_residuals(bwt_model, var = "residuals")
+```
+
+```{r}
+residuals_plot =
+  ggplot(bwt_model_df, aes(x = fitted, y = residuals)) +
+  geom_point(alpha = 0.4, size = 0.8) +
+  geom_smooth(method = "loess", color = "lightblue", se = FALSE) +
+  labs(
+    x = "Fitted Values",
+    y = "Residuals"
+  ) +
+  theme_minimal()
+
+residuals_plot
+```
+I choose bwt as dependent variable. I choose babysex, bhead, blength as infants' characteristics, delwt, frace, momage, mheight, ppbmi, wtgain, mrace, gaweeks, as parental characteristics, fincome, malform, smoken as social factors. I use multiple linear regression because bwt is a continous variable with more than two independent variables.
+
+
+```{r}
+cv_df =
+  crossv_mc(bwt_df, 100)
+```
+
+```{r}
+model_full = function(train){
+    lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + momage + mheight + ppbmi + smoken + wtgain + mrace, data = train)
+}
+
+model_main = function(train){
+  lm(bwt ~ blength + gaweeks, data = train)
+}
+
+model_interaction = function(train){
+  lm(bwt ~ bhead * blength * babysex, data = train)
+}
+```
+
+```{r}
+cv_results =
+  cv_df |>
+  mutate(
+    model_1 = map(train, ~ model_full(as.data.frame(.x))),
+    model_2 = map(train, ~ model_main(as.data.frame(.x))),
+    model_3 = map(train, ~ model_interaction(as.data.frame(.x))))|>
+  mutate(
+    error_1 = map2_dbl(model_1, test, ~ mean((predict(.x, as.data.frame(.y)) - as.data.frame(.y)[["bwt"]])^2)),
+    error_2 = map2_dbl(model_2, test, ~ mean((predict(.x, as.data.frame(.y)) - as.data.frame(.y)[["bwt"]])^2)),
+    error_3 = map2_dbl(model_3, test, ~ mean((predict(.x, as.data.frame(.y)) - as.data.frame(.y)[["bwt"]])^2))
+  )
+```
+
+
+```{r}
+cv_results |>
+  select(starts_with("error"))|>
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "error",
+    names_prefix = "error_")|>
+  mutate(model = fct_inorder(model))|>
+  ggplot(aes(x = model, y = error))+
+  geom_violin()
+```
+The full model has the lowest mean error. This suggests it performs well in terms of prediction accuracy and is more consistent compared to the other models.
+The main model has the highest mean error. This suggests it performs the poorest in terms of prediction accuracy/ The interaction model also performs well in terms of prediction accuracy and is more consistent compared to the other models.
