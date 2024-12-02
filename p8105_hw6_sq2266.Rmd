@@ -192,6 +192,7 @@ New York, NY has the lowest OR for solving homicides comparing male victims to f
 
 
 ## Q3
+### importing the dataset and converting
 ```{r}
 bwt_df = read_csv("birthweight.csv")|>
   janitor::clean_names()|>
@@ -231,6 +232,7 @@ bwt_df = read_csv("birthweight.csv")|>
 bwt_model =
   lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + momage + mheight + ppbmi + smoken + wtgain + mrace, data = bwt_df)
 ```
+I choose bwt as dependent variable. I choose babysex, bhead, blength as infants' characteristics, delwt, frace, momage, mheight, ppbmi, wtgain, mrace, gaweeks, as parental characteristics, fincome, malform, smoken as social factors. I use multiple linear regression because bwt is a continous variable with more than two independent variables.
 
 ```{r}
 bwt_model_df =
@@ -252,7 +254,6 @@ residuals_plot =
 
 residuals_plot
 ```
-I choose bwt as dependent variable. I choose babysex, bhead, blength as infants' characteristics, delwt, frace, momage, mheight, ppbmi, wtgain, mrace, gaweeks, as parental characteristics, fincome, malform, smoken as social factors. I use multiple linear regression because bwt is a continous variable with more than two independent variables.
 
 
 ```{r}
