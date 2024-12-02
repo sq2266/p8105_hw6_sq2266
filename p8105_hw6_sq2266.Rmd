@@ -1,5 +1,5 @@
 ---
-title: "Homework 1 Solution"
+title: "Homework 6"
 output: github_document
 name: Sihan Qiu
 ---
@@ -8,6 +8,7 @@ name: Sihan Qiu
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(modelr)
+library(p8105.datasets)
 set.seed(1)
 ```
 
@@ -96,6 +97,7 @@ homicide_df = read.csv("homicide-data.csv")|>
   janitor::clean_names()
 ```
 
+### creating a city_state variable
 ```{r}
 homicide_clean = 
   homicide_df |>
@@ -118,7 +120,7 @@ md_df =
   filter(city_state == "Baltimore, MD")
 ```
 
-
+### making logistic regression
 ```{r}
 glm_fit =
   glm(
@@ -127,7 +129,6 @@ glm_fit =
     family = binomial
 )
 ```
-
 
 ```{r}
 glm_summary = broom::tidy(glm_fit, conf.int = TRUE, exponentiate = TRUE)
@@ -157,20 +158,24 @@ city_df =
  
   filter(term == "victim_sexMale") |>
   
-  select(city_state, estimate, conf.low, conf.high)
+  select(city_state, or= estimate, conf.low, conf.high)
 ```
+
+
 
 ```{r}
 city_or_df =
   city_df |>
-  arrange(desc(estimate)) |>
+  arrange(desc(or)) |>
   mutate(city_state = factor(city_state, levels = city_state))
+
+city_or_df
 ```
 
 ### OR plot
 ```{r}
-or_plot =
-  ggplot(city_or_df, aes(x = city_state, y = estimate)) +
+or_plot = 
+  ggplot(city_or_df,aes(x = reorder(city_state, or), y = or)) +
   geom_point() + 
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
   labs(
@@ -178,10 +183,12 @@ or_plot =
     y = "OR"
   ) +
   theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  #this plot does not show the order from greatest to lowest
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 or_plot
 ```
+Comment:
+New York, NY has the lowest OR for solving homicides comparing male victims to female victims keeping all other variables fixed, and Minneapolis, MN has the highest OR for solving homicides comparing male victims to female victims keeping all other variables fixed. Fresno, CA has large CI.
 
 
 ## Q3
